@@ -1,0 +1,6 @@
+#!/bin/sh
+
+cd "$(dirname $0)"
+
+# Create a disk image to work with.
+[ -e disk1.qcow2 ] || qemu-img create -f qcow2 disk1.qcow2 4G

@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Starts a qemu VM
+#
+cd "$(dirname $0)"
+
+ACCEL=""
+
+# Select the best available hardware acceleration
+accelHelp=$(qemu-system-x86_64 -accel help)
+for mode in hvf kvm; do
+  echo $accelHelp | grep -q -w "$mode"
+  if [ $? -eq 0 ]; then
+    ACCEL="-accel $mode"
+    break
+  fi
+done
+
+CPU="-cpu kvm64"
+RAM="-m 2G"
+DISK="-hda disk1.qcow2"
+[ -z "$LOCAL_SSH_PORT" ] && LOCAL_SSH_PORT=9922
+NET="-device virtio-net-pci,netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${LOCAL_SSH_PORT}-:22"
+
+if [ -z "$ISO" ]; then
+  ISO="iso/alpine-x86_64.iso"
+  if [ ! -e "$ISO" ]; then
+    wget -O "$ISO" "http://dl-cdn.alpinelinux.org/alpine/v3.11/releases/x86_64/alpine-standard-3.11.6-x86_64.iso"
+  fi
+fi
+
+CDROM="-cdrom ${ISO}"
+
+set -x
+qemu-system-x86_64 $ACCEL $CPU $RAM $DISK $NET $CDROM
