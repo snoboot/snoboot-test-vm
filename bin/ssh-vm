@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# Wrapper script to simplify ssh'ing into the VM
+# The default user is root.
+
+exec ssh \
+	-F "$(dirname $0)/../lib/ssh-config" \
+	vm \
+	"$@"

@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# Wrapper script to simplify scp'ing data from and to the VM.
+# The default user is root.
+# Use "vm" as its hostname.
+
+exec scp \
+	-F "$(dirname $0)/../lib/ssh-config" \
+	"$@"

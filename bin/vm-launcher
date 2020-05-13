@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Starts a VM with qemu
+#
+
+abspath() {
+  dn=$(dirname "$1")
+  bn=$(basename "$1")
+  cd "$dn"
+  dn=$(pwd)
+  echo "$dn/$bn"
+}
+
+cmd=$(basename "$0")
+
+IFS=$'\n'
+if [ -z "$VM_ACCEL" ]; then
+  # Select the best available hardware acceleration
+  accelHelp=$(qemu-system-x86_64 -accel help)
+  for mode in hvf kvm; do
+    echo $accelHelp | grep -q -w "$mode"
+    if [ $? -eq 0 ]; then
+      accel=(-accel $mode)
+      break
+    fi
+  done
+else
+  accel=(-accel "$VM_ACCEL")
+fi
+
+[ -z "$VM_CPU" ] && VM_CPU=kvm64
+cpu=(-cpu "$VM_CPU")
+
+[ -z "$VM_RAM" ] && VM_RAM=2G
+ram=(-m "$VM_RAM")
+
+echo "Emulating a $VM_CPU system with $VM_RAM RAM"
+
+# VM_HDA=""
+hda=()
+if [ -n "$VM_HDA" ]; then
+  echo "Using hard-disk image: "$(abspath "$VM_HDA")
+  hda=(-hda "$VM_HDA")
+else
+  echo "No harddisk image set"
+fi
+
+cdrom=()
+if [ -n "$VM_ISO" ]; then
+  echo "Using ISO cdrom image: "$(abspath "$VM_ISO")
+  cdrom=(-cdrom "$VM_ISO")
+else
+  echo "No ISO cdom image set"
+fi
+
+[ -z "$VM_LOCAL_SSH_PORT" ] && VM_LOCAL_SSH_PORT=20022
+net=(-device virtio-net-pci,netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${LOCAL_SSH_PORT}-:22)
+echo "Forwarding local port $VM_LOCAL_SSH_PORT to VM's ssh server"
+
+lsof -t -i "TCP:$VM_LOCAL_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_LOCAL_SSH_PORT (already taken).\nPlease specify a free port with VM_LOCAL_SSH_PORT=nnnn $cmd $@\n" >&2
+
+set -x
+exec qemu-system-x86_64 ${accel[@]} ${cpu[@]} ${ram[@]} ${hda[@]} ${net[@]} ${cdrom[@]}

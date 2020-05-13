@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# Starts a qemu VM that boots the default snoboot image over the network
+#
+
+cd "$(dirname $0)"/../..
+
+if [ -z "$VM_ISO" ]; then
+  VM_ISO=(iso/ipxe.iso)
+  if [ ! -e "$VM_ISO" ]; then
+    wget -O "$VM_ISO" https://github.com/snoboot/snoboot-ipxe-build/releases/download/test/ipxe.iso
+  fi
+fi
+
+VM_ISO="$VM_ISO" VM_HDA="$VM_HDA" exec bin/vm-launcher
