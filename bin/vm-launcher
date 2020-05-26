@@ -54,7 +54,7 @@ else
 fi
 
 [ -z "$VM_LOCAL_SSH_PORT" ] && VM_LOCAL_SSH_PORT=20022
-net=(-device virtio-net-pci,netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${LOCAL_SSH_PORT}-:22)
+net=(-device virtio-net-pci,netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_LOCAL_SSH_PORT}-:22)
 echo "Forwarding local port $VM_LOCAL_SSH_PORT to VM's ssh server"
 
 lsof -t -i "TCP:$VM_LOCAL_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_LOCAL_SSH_PORT (already taken).\nPlease specify a free port with VM_LOCAL_SSH_PORT=nnnn $cmd $@\n" >&2
