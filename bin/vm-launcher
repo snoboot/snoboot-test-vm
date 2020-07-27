@@ -14,9 +14,29 @@ abspath() {
 cmd=$(basename "$0")
 
 IFS=$'\n'
+
+[ -z "$VM_QEMU" ] && VM_QEMU="qemu-system-x86_64"
+
+default_cpu=max
+default_machine=
+virtio_net_device=virtio-net-device
+
+extraArgPre=()
+case "$VM_QEMU" in
+  qemu-system-aarch64)
+    default_cpu="cortex-a57"
+    default_machine=virt
+    extraArgPre=(-nographic)
+    ;;
+  qemu-system-x86_64)
+    default_cpu="kvm64"
+    virtio_net_device=virtio-net-pci
+    ;;
+esac
+
 if [ -z "$VM_ACCEL" ]; then
   # Select the best available hardware acceleration
-  accelHelp=$(qemu-system-x86_64 -accel help)
+  accelHelp=$("$VM_QEMU" -accel help)
   for mode in hvf kvm; do
     echo $accelHelp | grep -q -w "$mode"
     if [ $? -eq 0 ]; then
@@ -28,13 +48,28 @@ else
   accel=(-accel "$VM_ACCEL")
 fi
 
-[ -z "$VM_CPU" ] && VM_CPU=kvm64
+[ -z "$VM_CPU" ] && VM_CPU="$default_cpu"
 cpu=(-cpu "$VM_CPU")
+
+machine=()
+[ -z "$VM_MACHINE" ] && VM_MACHINE="$default_machine"
+[ -n "$VM_MACHINE" ] && machine=(-machine "$VM_MACHINE")
 
 [ -z "$VM_RAM" ] && VM_RAM=2G
 ram=(-m "$VM_RAM")
 
-echo "Emulating a $VM_CPU system with $VM_RAM RAM"
+m=""
+[ -n "$VM_MACHINE" ] && m="$VM_MACHINE "
+echo "Emulating a $m$VM_CPU system with $VM_RAM RAM"
+
+smp=()
+[ -n "$VM_SMP" ] && smp=(-smp "$VM_SMP") && echo "Using SMP: $smp"
+
+bios=()
+if [ -n "$VM_BIOS" ]; then
+  echo "Using BIOS image: $VM_BIOS"
+  bios=(-bios "$VM_BIOS")
+fi
 
 # VM_HDA=""
 hda=()
@@ -54,10 +89,10 @@ else
 fi
 
 [ -z "$VM_LOCAL_SSH_PORT" ] && VM_LOCAL_SSH_PORT=20022
-net=(-device virtio-net-pci,netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_LOCAL_SSH_PORT}-:22)
+net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_LOCAL_SSH_PORT}-:22)
 echo "Forwarding local port $VM_LOCAL_SSH_PORT to VM's ssh server"
 
 lsof -t -i "TCP:$VM_LOCAL_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_LOCAL_SSH_PORT (already taken).\nPlease specify a free port with VM_LOCAL_SSH_PORT=nnnn $cmd $@\n" >&2
 
 set -x
-exec qemu-system-x86_64 ${accel[@]} ${cpu[@]} ${ram[@]} ${hda[@]} ${net[@]} ${cdrom[@]}
+exec "$VM_QEMU" ${extraArgPre[@]} ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${cdrom[@]}

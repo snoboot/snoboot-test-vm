@@ -22,4 +22,6 @@ if [ -z "$VM_HDA" ]; then
   VM_HDA="$disk1"
 fi
 
-VM_ISO="$VM_ISO" VM_HDA="$VM_HDA" exec bin/vm-launcher
+VM_QEMU="qemu-system-x86_64" \
+  VM_ISO="$VM_ISO" VM_HDA="$VM_HDA" \
+  exec bin/vm-launcher

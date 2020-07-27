@@ -3,3 +3,5 @@
 .DS_Store
 /*.qcow2
 /iso/*.iso
+/iso/*.fd
+.*.swp

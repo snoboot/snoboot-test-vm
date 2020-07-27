@@ -12,4 +12,6 @@ if [ -z "$VM_ISO" ]; then
   fi
 fi
 
-VM_ISO="$VM_ISO" VM_HDA="$VM_HDA" exec bin/vm-launcher
+VM_QEMU="qemu-system-x86_64" \
+  VM_ISO="$VM_ISO" VM_HDA="$VM_HDA" \
+  exec bin/vm-launcher
