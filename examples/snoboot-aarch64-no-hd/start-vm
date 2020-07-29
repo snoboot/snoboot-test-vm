@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Starts an aarch64 qemu VM that boots the default snoboot image over the network
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-aarch64" \
+  VM_ISO= \
+  VM_ISO_URL= \
+  VM_BIOS=iso/QEMU_EFI.fd \
+  VM_BIOS_URL=https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd \
+  VM_HDA=iso/ipxe-aarch64.test.usb \
+  VM_HDA_RO=1 \
+  VM_HDA_URL= \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  exec bin/vm-launcher

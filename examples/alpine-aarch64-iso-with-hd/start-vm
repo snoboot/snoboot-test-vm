@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Starts an aarch64 qemu VM that boots the standard Alpine Linux image over the internet.
+#
+# A 4GB harddisk is provided by default.
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-aarch64" \
+  VM_ISO=iso/alpine-standard-3.12.0-aarch64.iso \
+  VM_ISO_URL=http://dl-cdn.alpinelinux.org/alpine/v3.12/releases/aarch64/alpine-standard-3.12.0-aarch64.iso \
+  VM_BIOS=iso/QEMU_EFI.fd \
+  VM_BIOS_URL=https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd \
+  VM_HDA="$dir/disk1.qcow2" \
+  VM_HDA_URL="qemu-img-create:-f qcow2 4G" \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  exec bin/vm-launcher

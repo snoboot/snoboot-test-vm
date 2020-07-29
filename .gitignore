@@ -4,4 +4,5 @@
 /*.qcow2
 /iso/*.iso
 /iso/*.fd
+/iso/*.efi
 .*.swp

@@ -2,8 +2,24 @@
 #
 # Wrapper script to simplify ssh'ing into the VM
 # The default user is root.
+#
+# Environment variables affecting launch:
+#
+# VM_SSH_PORT: The local port to connect to.
+#              Example: 2222
+#
+# VM_SSH_USER: The user name to use.
+#              Example: alpine
+
+
+port=()
+[ -n "$VM_SSH_PORT" ] && port=(-p "$VM_SSH_PORT")
+
+user=()
+[ -n "$VM_SSH_USER" ] && user=(-o User="$VM_SSH_USER")
 
 exec ssh \
 	-F "$(dirname $0)/../lib/ssh-config" \
+	${port[@]} ${user[@]} \
 	vm \
 	"$@"

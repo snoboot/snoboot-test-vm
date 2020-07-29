@@ -1,6 +1,53 @@
 #!/bin/sh
 #
-# Starts a VM with qemu
+# Starts a VM with qemu.
+#
+# Environment variables affecting launch:
+#
+# VM_QEMU:     The qemu instance to use
+#              Example: qemu-system-aarch64
+#
+# VM_ISO:      Path to a (bootable) cdrom image on disk
+#              Example: iso/test.iso
+#
+# VM_ISO_URL:  If the file at VM_ISO doesn't exist yet, it is downloaded from this URL.
+#              Example: https://example.com/some.iso
+#
+# VM_BIOS:     Path to a BIOS image to be used by the emulator
+#              Example: iso/QEMU_EFI.fd
+#
+# VM_BIOS_URL: If the file at VM_BIOS doesn't exist yet, it is downloaded from this URL.
+#              Example: https://example.com/bios.fd
+#
+# VM_HDA:      Path to a local harddisk image
+#              Example: disk1.qcow2
+#
+# VM_HDA_URL:  If the file at VM_HDA doesn't exist yet, it is downloaded from this URL.
+#              Example: https://example.com/hda.img
+#
+#              If the URL starts with "qemu-img-create:", an image is created instead.
+#              Example: qemu-img-create:-f qcow2 4G
+#
+# VM_HDA_RO:   Determines whether the given harddisk image should be accessible read-only.
+#              Example: 1
+#
+# VM_SSH_PORT: The local port for ssh forwarding
+#              Example: 2222
+#
+# VM_RAM:      Memory to use
+#              Example: 2G
+#
+# VM_MACHINE:  Machine type to use
+#              Example: virt
+#
+# VM_CPU:      CPU to use
+#              Example: max
+#
+# VM_ACCEL:    Hardware acceleration to use
+#              Example: hvf
+#
+# VM_SMP:      Specifies the number of cores for SMP
+#              Example: 2
 #
 
 abspath() {
@@ -19,6 +66,7 @@ IFS=$'\n'
 
 default_cpu=max
 default_machine=
+default_sshPort=20022
 virtio_net_device=virtio-net-device
 
 extraArgPre=()
@@ -68,14 +116,40 @@ smp=()
 bios=()
 if [ -n "$VM_BIOS" ]; then
   echo "Using BIOS image: $VM_BIOS"
+  if [ ! -e "$VM_BIOS" -a -n "$VM_BIOS_URL" ]; then
+    wget -O "$VM_BIOS" "$VM_BIOS_URL" || exit $?
+  fi
   bios=(-bios "$VM_BIOS")
 fi
 
-# VM_HDA=""
 hda=()
 if [ -n "$VM_HDA" ]; then
   echo "Using hard-disk image: "$(abspath "$VM_HDA")
-  hda=(-hda "$VM_HDA")
+
+  if [ ! -e "$VM_HDA" ]; then
+    if [[ "$VM_HDA_URL" == qemu-img-create:* ]]; then
+      IFS=' ' createArgs=(${VM_HDA_URL/qemu-img-create:})
+      qemu-img create "$VM_HDA" ${createArgs[@]} || exit $?
+    elif [ -z "$VM_HDA_URL" ]; then
+      echo "Harddisk image not found: $VM_HDA" >&2
+      exit 1
+    else
+      wget -O "$VM_HDA" "$VM_HDA_URL" || exit $?
+    fi
+  fi
+
+  suffix=${name##*.}
+  options=""
+  case "$suffix" in
+    usb)
+      format=raw
+      ;;
+    *)
+      ;;
+  esac
+  [ -n "$format" ] && options+=",format=${format}"
+  [[ "$VM_HDA_RO" -gt 0 ]] && options+=",readonly"
+  hda=(-drive index=0${options},file="$VM_HDA")
 else
   echo "No harddisk image set"
 fi
@@ -83,16 +157,19 @@ fi
 cdrom=()
 if [ -n "$VM_ISO" ]; then
   echo "Using ISO cdrom image: "$(abspath "$VM_ISO")
+  if [ ! -e "$VM_ISO" -a -n "$VM_ISO_URL" ]; then
+    wget -O "$VM_ISO" "$VM_ISO_URL" || exit $?
+  fi
   cdrom=(-cdrom "$VM_ISO")
 else
   echo "No ISO cdom image set"
 fi
 
-[ -z "$VM_LOCAL_SSH_PORT" ] && VM_LOCAL_SSH_PORT=20022
-net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_LOCAL_SSH_PORT}-:22)
-echo "Forwarding local port $VM_LOCAL_SSH_PORT to VM's ssh server"
+[ -z "$VM_SSH_PORT" ] && VM_SSH_PORT="$default_sshPort"
+net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_SSH_PORT}-:22)
+echo "Forwarding local port $VM_SSH_PORT to VM's ssh server (port 22)"
 
-lsof -t -i "TCP:$VM_LOCAL_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_LOCAL_SSH_PORT (already taken).\nPlease specify a free port with VM_LOCAL_SSH_PORT=nnnn $cmd $@\n" >&2
+lsof -t -i "TCP:$VM_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_SSH_PORT (already taken).\nPlease specify a free port with VM_SSH_PORT=nnnn $cmd $@\n" >&2
 
 set -x
 exec "$VM_QEMU" ${extraArgPre[@]} ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${cdrom[@]}

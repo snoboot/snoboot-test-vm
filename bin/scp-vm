@@ -3,7 +3,19 @@
 # Wrapper script to simplify scp'ing data from and to the VM.
 # The default user is root.
 # Use "vm" as its hostname.
+#
+# Environment variables affecting launch:
+#
+# VM_SSH_PORT: The local port to connect to.
+#              Example: 2222
+
+port=()
+[ -n "$VM_SSH_PORT" ] && port=(-P "$VM_SSH_PORT")
+
+user=()
+[ -n "$VM_SSH_USER" ] && user=(-o User="$VM_SSH_USER")
 
 exec scp \
 	-F "$(dirname $0)/../lib/ssh-config" \
+	${port[@]} ${user[@]} \
 	"$@"
