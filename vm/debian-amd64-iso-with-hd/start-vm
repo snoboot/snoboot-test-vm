@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Starts an x86 qemu VM that boots the Debian net installer
+#
+# An 8GB harddisk is provided by default, which you can convert to a snoboot image
+# using snoboot-prepare-server
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-x86_64" \
+  VM_ISO=iso/debian-10.5.0-amd64-netinst.iso \
+  VM_ISO_URL=https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-10.5.0-amd64-netinst.iso \
+  VM_HDA="$dir/disk1.qcow2" \
+  VM_HDA_URL="qemu-img-create:-f qcow2 8G" \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  VM_FDA="/dev/null" \
+  exec bin/vm-launcher

@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Starts an x86 qemu VM that boots the standard Alpine Linux image over the internet.
+#
+# A 4GB harddisk is provided by default, which you can convert to a snoboot image
+# using snoboot-prepare-server
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-x86_64" \
+  VM_ISO=iso/alpine-standard-3.12.0-x86.iso \
+  VM_ISO_URL=http://dl-cdn.alpinelinux.org/alpine/v3.12/releases/x86/alpine-standard-3.12.0-x86.iso \
+  VM_HDA="$dir/disk1.qcow2" \
+  VM_HDA_URL="qemu-img-create:-f qcow2 4G" \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  exec bin/vm-launcher
