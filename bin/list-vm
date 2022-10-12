@@ -1,0 +1,20 @@
+#!/bin/sh
+
+realpath() {
+  pwd="$PWD"
+  cd "$(dirname "$1")"
+  f=$(readlink "$(basename "$1")")
+  while [ -n "$f" ]; do
+    cd "$(dirname "$f")"
+    f=$(readlink "$(basename "$1")")
+  done
+  echo "$PWD/$(basename "$1")"
+  cd "$pwd"
+}
+
+cd "$(dirname $(realpath $0))/../vm"
+
+for vm in $(ls -1); do
+  [ ! -e "$vm/start-vm" ] && continue
+  echo $vm
+done

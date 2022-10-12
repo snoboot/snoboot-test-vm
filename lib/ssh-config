@@ -2,8 +2,8 @@ Host vm
   HostName localhost
   NoHostAuthenticationForLocalhost yes
   IdentitiesOnly yes
-  PreferredAuthentications password
+  #PreferredAuthentications password
   PasswordAuthentication yes
-  PubkeyAuthentication no
+  PubkeyAuthentication yes
   User root
   Port 20022

@@ -11,6 +11,17 @@
 # VM_SSH_USER: The user name to use.
 #              Example: alpine
 
+realpath() {
+  pwd="$PWD"
+  cd "$(dirname "$1")"
+  f=$(readlink "$(basename "$1")")
+  while [ -n "$f" ]; do
+    cd "$(dirname "$f")"
+    f=$(readlink "$(basename "$1")")
+  done
+  echo "$PWD/$(basename "$1")"
+  cd "$pwd"
+}
 
 port=()
 [ -n "$VM_SSH_PORT" ] && port=(-p "$VM_SSH_PORT")
@@ -18,8 +29,15 @@ port=()
 user=()
 [ -n "$VM_SSH_USER" ] && user=(-o User="$VM_SSH_USER")
 
+host=()
+[[ $# -eq 0 ]] && host=("vm")
+
+realpath() {
+	[[ $1 = /* ]] && echo "$1" || echo "$(pwd)/${1#./}"
+}
+
 exec ssh \
-	-F "$(dirname $0)/../lib/ssh-config" \
+	-F "$(dirname $(realpath $0))/../lib/ssh-config" \
 	${port[@]} ${user[@]} \
-	vm \
+	${host[@]} \
 	"$@"

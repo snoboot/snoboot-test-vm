@@ -9,6 +9,18 @@
 # VM_SSH_PORT: The local port to connect to.
 #              Example: 2222
 
+realpath() {
+  pwd="$PWD"
+  cd "$(dirname "$1")"
+  f=$(readlink "$(basename "$1")")
+  while [ -n "$f" ]; do
+    cd "$(dirname "$f")"
+    f=$(readlink "$(basename "$1")")
+  done
+  echo "$PWD/$(basename "$1")"
+  cd "$pwd"
+}
+
 port=()
 [ -n "$VM_SSH_PORT" ] && port=(-P "$VM_SSH_PORT")
 
@@ -16,6 +28,6 @@ user=()
 [ -n "$VM_SSH_USER" ] && user=(-o User="$VM_SSH_USER")
 
 exec scp \
-	-F "$(dirname $0)/../lib/ssh-config" \
+	-F "$(dirname $(realpath $0))/../lib/ssh-config" \
 	${port[@]} ${user[@]} \
 	"$@"

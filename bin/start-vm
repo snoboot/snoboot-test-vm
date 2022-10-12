@@ -1,0 +1,38 @@
+#!/bin/sh
+
+realpath() {
+  pwd="$PWD"
+  cd "$(dirname "$1")"
+  f=$(readlink "$(basename "$1")")
+  while [ -n "$f" ]; do
+    cd "$(dirname "$f")"
+    f=$(readlink "$(basename "$1")")
+  done
+  echo "$PWD/$(basename "$1")"
+  cd "$pwd"
+}
+
+[ -z "$1" ] && echo "Syntax: $(basename $0) <vm name>" >&2 && exit 1
+cd "$(dirname $(realpath $0))/../vm"
+
+matches=()
+for vm in $(ls -1 | grep "$1"); do
+  [ ! -e "$vm/start-vm" ] && continue
+  matches+=("$vm")
+done
+
+vm=
+case ${#matches[@]} in
+ 0) echo "No VM found" >&2 ; exit 100
+    ;;
+ 1) vm=${matches[0]}
+    ;;
+ *) echo "Ambiguous VM name:" >&2
+    for m in ${matches[@]}; do
+      echo "- $m" >&2
+    done
+    exit 101
+esac
+
+echo "Launching $vm"
+exec ./"$vm"/start-vm

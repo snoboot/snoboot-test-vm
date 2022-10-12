@@ -6,7 +6,7 @@
 cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
 
 VM_QEMU="qemu-system-x86_64" \
-  VM_ISO=iso/ipxe.iso \
-  VM_ISO_URL=https://github.com/snoboot/snoboot-ipxe-build/releases/download/test/ipxe.iso \
+  VM_ISO=iso/ipxe-x86_64.iso \
+  VM_ISO_URL= \
   VM_SSH_PORT="$VM_SSH_PORT" \
   exec bin/vm-launcher

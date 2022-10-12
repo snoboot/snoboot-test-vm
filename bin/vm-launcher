@@ -31,6 +31,13 @@
 # VM_HDA_RO:   Determines whether the given harddisk image should be accessible read-only.
 #              Example: 1
 #
+# VM_FDA:      Path to a local floppy image
+#              Example: fda.img
+#              Example: /dev/null
+#
+# VM_FDA_URL:  If the file at VM_FDA doesn't exist yet, it is downloaded from this URL.
+#              Example: https://example.com/fda.img
+#
 # VM_SSH_PORT: The local port for ssh forwarding
 #              Example: 2222
 #
@@ -165,6 +172,21 @@ else
   echo "No ISO cdom image set"
 fi
 
+floppy=()
+if [ -n "$VM_FDA" ]; then
+  echo "Using floppy image: "$(abspath "$VM_ISO")
+  if [ ! -e "$VM_FDA" -a -n "$VM_FDA_URL" ]; then
+    wget -O "$VM_FDA" "$VM_FDA_URL" || exit $?
+  fi
+  floppy=(-fda "$VM_FDA")
+
+  if [ "$VM_FDA" == "/dev/null" ]; then
+     floppy+=(-no-fd-bootchk)
+  fi
+else
+  echo "No floppy image set"
+fi
+
 [ -z "$VM_SSH_PORT" ] && VM_SSH_PORT="$default_sshPort"
 net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_SSH_PORT}-:22)
 echo "Forwarding local port $VM_SSH_PORT to VM's ssh server (port 22)"
@@ -172,4 +194,4 @@ echo "Forwarding local port $VM_SSH_PORT to VM's ssh server (port 22)"
 lsof -t -i "TCP:$VM_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_SSH_PORT (already taken).\nPlease specify a free port with VM_SSH_PORT=nnnn $cmd $@\n" >&2
 
 set -x
-exec "$VM_QEMU" ${extraArgPre[@]} ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${cdrom[@]}
+exec "$VM_QEMU" ${extraArgPre[@]} -accel tcg ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd
