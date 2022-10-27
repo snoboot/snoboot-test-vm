@@ -116,7 +116,11 @@ case "$VM_QEMU" in
   qemu-system-x86_64)
     #default_cpu="kvm64"
     #default_cpu="kvm64,+spec-ctrl"
-    default_cpu="host"
+    if [[ $(uname -m) == "x86_64" ]]; then
+      default_cpu="host"
+    else
+      default_cpu="kvm64"
+    fi
     virtio_net_device=virtio-net-pci
     ;;
   qemu-system-sparc64)
@@ -239,6 +243,14 @@ net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net="$VM_NETW
 echo "Forwarding local port $VM_SSH_PORT to VM's ssh server (port 22)"
 
 lsof -t -i "TCP:$VM_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_SSH_PORT (already taken).\nPlease specify a free port with VM_SSH_PORT=nnnn $cmd $@\n" >&2
+
+if [[ -n "$VM_VNC_LOCAL_EXEC" && "$VM_VNC" == "unix:"* ]]; then
+      # example: export VM_VNC_LOCAL_EXEC="/Applications/TigerVNC Viewer 1.12.0.app/Contents/MacOS/TigerVNC Viewer"
+    (
+      sleep 1
+      "$VM_VNC_LOCAL_EXEC" ${VM_VNC/unix:/}
+    ) &
+fi
 
 #exec "$VM_QEMU" -device vhost-vsock-pci,guest-cid=3 -vnc unix:/tmp/qemu-vnc ${extraArgPre[@]} -accel tcg ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd
 #exec "$VM_QEMU" -vnc unix:/tmp/qemu-vnc ${extraArgPre[@]} -accel tcg ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd
