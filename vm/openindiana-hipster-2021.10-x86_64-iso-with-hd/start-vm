@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# Starts an x86 qemu VM that boots ...
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-x86_64" \
+  VM_ISO=iso/OI-hipster-text-20211031.iso \
+  VM_ISO_URL=http://dlc.openindiana.org/isos/hipster/20211031/OI-hipster-text-20211031.iso \
+  VM_HDA="$dir/disk1.qcow2" \
+  VM_HDA_URL="qemu-img-create:-f qcow2 8G" \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  VM_FDA="/dev/null" \
+  exec bin/vm-launcher

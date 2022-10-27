@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# Starts an x86 qemu VM that boots ...
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-x86_64" \
+  VM_ISO=iso/NetBSD-9.3-amd64.iso \
+  VM_ISO_URL=https://cdn.netbsd.org/pub/NetBSD/NetBSD-9.3/images/NetBSD-9.3-amd64.iso \
+  VM_HDA="$dir/disk1.qcow2" \
+  VM_HDA_URL="qemu-img-create:-f qcow2 8G" \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  VM_FDA="/dev/null" \
+  exec bin/vm-launcher

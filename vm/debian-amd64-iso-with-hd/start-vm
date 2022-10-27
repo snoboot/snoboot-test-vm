@@ -10,7 +10,7 @@ cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
 
 VM_QEMU="qemu-system-x86_64" \
   VM_ISO=iso/debian-10.5.0-amd64-netinst.iso \
-  VM_ISO_URL=https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-10.5.0-amd64-netinst.iso \
+  VM_ISO_URL=https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-11.5.0-amd64-netinst.iso \
   VM_HDA="$dir/disk1.qcow2" \
   VM_HDA_URL="qemu-img-create:-f qcow2 8G" \
   VM_SSH_PORT="$VM_SSH_PORT" \
