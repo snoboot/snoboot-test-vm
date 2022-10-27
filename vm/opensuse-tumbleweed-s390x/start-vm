@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Starts an s390x qemu VM that boots OpenSUSE Tumbleweed
+#
+# An 8GB harddisk is provided by default
+#
+
+cd "$(dirname $0)" ; dir="$(pwd)" ; cd ../..
+
+VM_QEMU="qemu-system-s390x" \
+  VM_ISO=iso/openSUSE-Tumbleweed-DVD-s390x-Current.iso \
+  VM_ISO_URL=http://download.opensuse.org/ports/zsystems/tumbleweed/iso/openSUSE-Tumbleweed-DVD-s390x-Current.iso \
+  VM_HDA="$dir/disk1.qcow2" \
+  VM_HDA_URL="qemu-img-create:-f qcow2 8G" \
+  VM_SSH_PORT="$VM_SSH_PORT" \
+  exec bin/vm-launcher

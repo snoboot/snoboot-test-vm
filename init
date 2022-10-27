@@ -11,5 +11,5 @@ if [[ $(uname -s) == "Darwin" ]]; then
  
   [[ ${#deps} -gt 0 ]] && brew install ${deps[@]} || true
 else
-  sudo apk add qemu-system-x86_64 qemu-img lsof socat
+  sudo apk add qemu-system-x86_64 qemu-img lsof socat qemu-system-aarch64 qemu-system-s390x
 fi

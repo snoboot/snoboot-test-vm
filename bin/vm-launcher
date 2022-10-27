@@ -99,7 +99,8 @@ if [[ -z "$VM_VNC" ]]; then
 	VM_VNC="unix:$PWD/run/$VM_ID.vnc.sock"
 fi
 
-[ -z "$VM_QEMU" ] && VM_QEMU="qemu-system-x86_64"
+[[ -z "$VM_QEMU" ]] && VM_QEMU="qemu-system-x86_64"
+[[ -z "$VM_QEMU_TYPE" ]] && VM_QEMU_TYPE=$(basename "$VM_QEMU")
 
 default_cpu=max
 default_machine=
@@ -107,11 +108,12 @@ default_sshPort=20022
 virtio_net_device=virtio-net-device
 
 extraArgPre=()
-case "$VM_QEMU" in
+case "$VM_QEMU_TYPE" in
   qemu-system-aarch64)
     default_cpu="cortex-a57"
     default_machine=virt
     extraArgPre=(-nographic)
+    VM_VNC=off
     ;;
   qemu-system-x86_64)
     #default_cpu="kvm64"
@@ -126,6 +128,12 @@ case "$VM_QEMU" in
   qemu-system-sparc64)
     default_cpu=""
     default_machine="niagara"
+    ;;
+  qemu-system-s390x)
+    default_machine="s390-ccw-virtio"
+    virtio_net_device=virtio-net-ccw
+    extraArgPre=(-nographic)
+    VM_VNC=off
     ;;
 esac
 
@@ -238,8 +246,9 @@ if [[ -n "$VM_VNC" && "$VM_VNC" != "off" ]]; then
 	vnc=(-vnc "$VM_VNC")
 fi
 
-[ -z "$VM_SSH_PORT" ] && VM_SSH_PORT="$default_sshPort"
+[[ -z "$VM_SSH_PORT" ]] && VM_SSH_PORT="$default_sshPort"
 net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net="$VM_NETWORK_SUBNET",hostfwd=tcp::${VM_SSH_PORT}-:22)
+
 echo "Forwarding local port $VM_SSH_PORT to VM's ssh server (port 22)"
 
 lsof -t -i "TCP:$VM_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_SSH_PORT (already taken).\nPlease specify a free port with VM_SSH_PORT=nnnn $cmd $@\n" >&2
