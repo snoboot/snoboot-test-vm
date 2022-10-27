@@ -1,3 +1,15 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-sudo apk add qemu-system-x86_64 qemu-img lsof socat
+if [[ $(uname -s) == "Darwin" ]]; then
+  deps=()
+  installed=($(brew list -1))
+  function checkDep {
+    echo ${installed[@]} | grep -w -q "$1" || deps+=("$1")
+  }
+  checkDep qemu
+  checkDep socat
+ 
+  [[ ${#deps} -gt 0 ]] && brew install ${deps[@]} || true
+else
+  sudo apk add qemu-system-x86_64 qemu-img lsof socat
+fi
