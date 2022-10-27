@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Wrapper script to simplify scp'ing data from and to the VM.
 # The default user is root.

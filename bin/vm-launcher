@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Starts a VM with qemu.
 #
@@ -58,16 +58,46 @@
 #
 
 abspath() {
-  dn=$(dirname "$1")
-  bn=$(basename "$1")
-  cd "$dn"
-  dn=$(pwd)
-  echo "$dn/$bn"
+  if [[ -d "$1" ]]; then
+    cd "$1"
+    echo "$PWD"
+  else
+    dn=$(dirname "$1")
+    bn=$(basename "$1")
+    cd "$dn"
+    dn="$PWD"
+    echo "$dn/$bn"
+  fi
 }
 
 cmd=$(basename "$0")
 
+baseDir=$(abspath $(dirname "$0")/..)
+if [[ "$PWD" != "$baseDir" ]]; then
+	cd "$baseDir"
+fi
+mkdir -p run
+
 IFS=$'\n'
+
+if [[ -z "$VM_ID" ]]; then
+	id=$(basename "$OLDPWD")
+	if [[ "$OLDPWD" == "$PWD/vm/$id" ]]; then
+		VM_ID="$id"
+	else
+		echo "Error: VM_ID not specified, and could not determine" >&2
+		exit 1
+	fi
+fi
+
+if [[ "$VM_ID" == *"/"* ]]; then
+	echo "Error: Invalid VM_ID: $VM_ID" >&2
+	exit 1
+fi
+
+if [[ -z "$VM_VNC" ]]; then
+	VM_VNC="unix:$PWD/run/$VM_ID.vnc.sock"
+fi
 
 [ -z "$VM_QEMU" ] && VM_QEMU="qemu-system-x86_64"
 
@@ -84,8 +114,14 @@ case "$VM_QEMU" in
     extraArgPre=(-nographic)
     ;;
   qemu-system-x86_64)
-    default_cpu="kvm64"
+    #default_cpu="kvm64"
+    #default_cpu="kvm64,+spec-ctrl"
+    default_cpu="host"
     virtio_net_device=virtio-net-pci
+    ;;
+  qemu-system-sparc64)
+    default_cpu=""
+    default_machine="niagara"
     ;;
 esac
 
@@ -104,7 +140,7 @@ else
 fi
 
 [ -z "$VM_CPU" ] && VM_CPU="$default_cpu"
-cpu=(-cpu "$VM_CPU")
+[ -n "$VM_CPU" ] && cpu=(-cpu "$VM_CPU")
 
 machine=()
 [ -z "$VM_MACHINE" ] && VM_MACHINE="$default_machine"
@@ -181,17 +217,29 @@ if [ -n "$VM_FDA" ]; then
   floppy=(-fda "$VM_FDA")
 
   if [ "$VM_FDA" == "/dev/null" ]; then
-     floppy+=(-no-fd-bootchk)
+      if [[ "$VM_QEMU" != "qemu-system-sparc64" ]]; then
+          floppy+=(-no-fd-bootchk)
+      fi
   fi
 else
   echo "No floppy image set"
 fi
 
+if [[ -z "$VM_NETWORK_SUBNET" ]]; then
+  VM_NETWORK_SUBNET=240.42.0.0/24
+fi
+
+vnc=()
+if [[ -n "$VM_VNC" && "$VM_VNC" != "off" ]]; then
+	vnc=(-vnc "$VM_VNC")
+fi
+
 [ -z "$VM_SSH_PORT" ] && VM_SSH_PORT="$default_sshPort"
-net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net=240.42.0.0/24,hostfwd=tcp::${VM_SSH_PORT}-:22)
+net=(-device "$virtio_net_device",netdev=net0 -netdev user,id=net0,net="$VM_NETWORK_SUBNET",hostfwd=tcp::${VM_SSH_PORT}-:22)
 echo "Forwarding local port $VM_SSH_PORT to VM's ssh server (port 22)"
 
 lsof -t -i "TCP:$VM_SSH_PORT" -s TCP:LISTEN >/dev/null && echo "\nError: Can't listen on port $VM_SSH_PORT (already taken).\nPlease specify a free port with VM_SSH_PORT=nnnn $cmd $@\n" >&2
 
-set -x
-exec "$VM_QEMU" ${extraArgPre[@]} -accel tcg ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd
+#exec "$VM_QEMU" -device vhost-vsock-pci,guest-cid=3 -vnc unix:/tmp/qemu-vnc ${extraArgPre[@]} -accel tcg ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd
+#exec "$VM_QEMU" -vnc unix:/tmp/qemu-vnc ${extraArgPre[@]} -accel tcg ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd
+exec "$VM_QEMU" ${vnc[@]} ${extraArgPre[@]} ${accel[@]} ${cpu[@]} ${machine[@]} ${ram[@]} ${smp[@]} ${bios[@]} ${hda[@]} ${net[@]} ${floppy[@]} ${cdrom[@]} -boot order=cd

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Wrapper script to simplify ssh'ing into the VM
 # The default user is root.
